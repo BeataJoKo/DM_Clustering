@@ -159,7 +159,9 @@ ax.set_yticks([])
 ax.set_xticks([-0.2,0,0.2,0.4,0.6,0.8,1])
 
 #%%
-
+df_check = pd.DataFrame({'predicted': y_mean, 'original': y[2]})
+ct = pd.crosstab(df_check['predicted'], df_check['original'])
+print(ct)
 
 
 #%%
