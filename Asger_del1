@@ -1,0 +1,75 @@
+import pandas as pd
+df = pd.read_csv('/Users/asgermollernielsen/Downloads/Aggregation.csv')
+df.drop('cluster',
+  axis='columns', inplace=True)
+df.head()
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neighbors import NearestNeighbors
+
+nn = NearestNeighbors(n_neighbors=7)
+nbrs = nn.fit(df)
+distances, indices = nbrs.kneighbors(df)
+
+
+distances = np.sort(distances, axis=0)
+distances = distances[:,1]
+plt.figure(figsize=(6,10))
+plt.plot(distances)
+plt.title('K-distance Graph for "Dart df"',fontsize=20)
+plt.xlabel('Data Points sorted by distance',fontsize=14)
+plt.ylabel('Epsilon',fontsize=13)
+plt.show()
+
+DBSCAN clustering
+from sklearn.cluster import DBSCAN
+import sklearn.cluster as cluster
+
+epsilon = 1.4
+ 
+dbscan = DBSCAN(eps=epsilon, min_samples=7)  # You can adjust min_samples based on your dataset
+clusters = dbscan.fit_predict(df)
+
+
+
+plt.figure(figsize=(8, 6))
+plt.scatter(df.iloc[:, 0], df.iloc[:, 1], c=clusters, cmap='viridis', s=50, alpha=0.5)
+plt.title('DBSCAN Clustering', fontsize=20)
+plt.xlabel('Feature 1', fontsize=14)
+plt.ylabel('Feature 2', fontsize=14)
+plt.show()
+from sklearn.metrics import silhouette_score
+
+
+silhouette_avg = silhouette_score(df, clusters)
+print("Silhouette Score:", silhouette_avg)
+
+
+from sklearn.mixture import GaussianMixture
+
+n_clusters = 7  # You can adjust this based on your dataset
+gmm = GaussianMixture(n_components=n_clusters, random_state=11)
+gmm.fit(df)
+
+clusters_gmm = gmm.predict(df)
+
+plt.figure(figsize=(8, 6))
+plt.scatter(df.iloc[:, 0], df.iloc[:, 1], c=clusters_gmm, cmap='viridis', s=50, alpha=0.5)
+plt.title('Gaussian Mixture Model Clustering', fontsize=20)
+plt.xlabel('Feature 1', fontsize=14)
+plt.ylabel('Feature 2', fontsize=14)
+plt.show()
+silhouette_avg_gmm = silhouette_score(df, clusters_gmm)
+print("Silhouette Score is: ", silhouette_avg_gmm)
+
+df_2 = pd.read_csv('/Users/asgermollernielsen/Downloads/Aggregation.csv')
+plt.figure(figsize=(8, 6))
+plt.scatter(df_2.iloc[:, 0], df_2.iloc[:, 1], c=df_2.iloc[:, 2], cmap='viridis', s=50, alpha=0.5)
+plt.title('Clusters in data', fontsize=20)
+plt.xlabel('Feature 1', fontsize=14)
+plt.ylabel('Feature 2', fontsize=14)
+plt.show()
+silhouette_avg_data = silhouette_score(df_2, df_2.iloc[:, 2])
+print("Silhouette Score:", silhouette_avg_data)
