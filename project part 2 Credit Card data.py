@@ -7,7 +7,7 @@ Created on Tue Apr  9 16:35:11 2024
 
 
 import pandas as pd
-
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -19,6 +19,7 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 
+random.seed(123)
 #%%
 
 
