@@ -306,3 +306,9 @@ ax1.axvline(x=best_score_GMM, color="red", linestyle="--")
 ax1.set_yticks([])  # Clear the yaxis labels / ticks
 ax1.set_xticks([-0.5,-0.25, 0, 0.2, 0.4, 0.6, 0.8, 1])
 
+#%%
+
+best_model_kmeans_pca.save('best_model_kmeans_pca.keras')
+best_model_GMM.save('best_model_GMM.keras')
+best_model_kmeans.save('ModelNN.keras')
+
