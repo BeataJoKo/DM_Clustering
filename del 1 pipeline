@@ -1,0 +1,202 @@
+import random
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from sklearn.pipeline import Pipeline
+
+
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+
+from hdbscan import HDBSCAN
+from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import silhouette_samples, silhouette_score, precision_score, recall_score
+
+
+random.seed(123)
+df = pd.read_table('/Users/asgermollernielsen/Downloads/aggregation1.csv', sep='\s+', header=None)
+
+X = df[[0,1]]
+y = df[[2]]
+
+df_new = pd.read_csv('/Users/asgermollernielsen/Downloads/pathbased.csv', sep=';')
+X_new = df_new[['x','y']]
+y_new = df_new['cluster']
+
+X_new.head()
+
+
+plt.scatter(X[0], X[1])
+plt.title('data', fontsize=20)
+
+plt.show()
+
+
+plt.scatter(X[0], X[1], c=y)
+plt.title('Original clustering', fontsize=20)
+
+plt.show()
+
+
+kmeans_pipeline = Pipeline([
+    ('kmeans', KMeans(n_clusters=7, random_state=10))])  
+
+
+y_kmeans = kmeans_pipeline.fit_predict(X)
+
+
+silhouette_kmeans = silhouette_score(X, y_kmeans)
+print(f"Silhouette Score (KMeans): {silhouette_kmeans}")
+precision_kmeans = precision_score(y, y_kmeans, average='micro')
+recall_kmeans = recall_score(y, y_kmeans, average='micro')
+print(f"Precision (Kmeans): {precision_kmeans}")
+print(f"Recall (Kmeans): {recall_kmeans}")
+
+
+centroids = kmeans_pipeline.named_steps['kmeans'].cluster_centers_
+plt.scatter(X[0], X[1], c=y_kmeans, alpha=0.8)
+plt.scatter(centroids[:,0], centroids[:,1], marker='D', s=30, c='red')
+plt.title('Clusters and centroids with KMeans', fontsize=20)
+plt.show()
+
+
+db_pipeline = Pipeline([
+    ('dbscan', DBSCAN(eps=1.4, min_samples=7)) 
+])
+
+
+y_dbscan = db_pipeline.fit_predict(X)
+
+
+silhouette_dbscan = silhouette_score(X, y_dbscan)
+print(f"Silhouette Score (DBSCAN): {silhouette_dbscan}")
+precision_dbscan = precision_score(y, y_dbscan, average='micro')
+recall_dbscan = recall_score(y, y_dbscan, average='micro')
+print(f"Precision (DBSCAN): {precision_dbscan}")
+print(f"Recall (DBSCAN): {recall_dbscan}")
+
+
+plt.scatter(X[0], X[1], c=y_dbscan)
+plt.title("DBSCAN Clustering")
+plt.show()
+
+
+hdb_pipeline = Pipeline([
+    ('hdbscan', HDBSCAN(min_cluster_size=11, cluster_selection_epsilon=2))  
+])
+
+
+y_hdbscan = hdb_pipeline.fit_predict(X)
+
+silhouette_hdbscan = silhouette_score(X, y_hdbscan)
+print(f"Silhouette Score (HDBSCAN): {silhouette_hdbscan}")
+precision_hdbscan = precision_score(y, y_hdbscan, average='micro')
+recall_hdbscan = recall_score(y, y_hdbscan, average='micro')
+print(f"Precision (HDBSCAN): {precision_hdbscan}")
+print(f"Recall (HDBSCAN): {recall_hdbscan}")
+
+plt.scatter(X[0], X[1], c=y_hdbscan)
+plt.title("HDBSCAN Clustering")
+plt.show()
+
+best_score = 0
+best_gmm = None
+best_y_gmm = None
+
+for i in range(1, 101):
+    gmm = GaussianMixture(n_components=7, random_state=i)
+    y_gmm = gmm.fit_predict(X)
+    score = silhouette_score(X, y_gmm)
+    #print(f'Silhouette Score (Gaussian Mixture n=7) for seed {i}: {score}')
+    if score > best_score:
+        best_score = score
+        best_gmm = gmm
+        best_y_gmm = y_gmm
+
+
+print(f'Best Gaussian Mixture Model: {best_gmm}')
+print(f'Best Silhouette Score (Gaussian Mixture n=7): {best_score}')
+precision_gmm = precision_score(y, best_y_gmm, average='micro')
+recall_gmm = recall_score(y, best_y_gmm, average='micro')
+print(f"Precision (GMM): {precision_gmm}")
+print(f"Recall (GMM): {recall_gmm}")
+
+plt.scatter(X[0], X[1], c=best_y_gmm)
+plt.title('Best Gaussian Mixture Model Clusters')
+plt.show()
+
+
+y_mean = kmeans_pipeline.fit_predict(X)
+
+sample_silhouette_values = silhouette_samples(X, y_mean)
+silhouette_avg = silhouette_score(X, y_mean)
+n_cluster = len(np.unique(y_mean))
+
+#%%
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+y_lower =10
+for i in range(n_cluster):
+    ith_cluster_silhouette_values = sample_silhouette_values[y_mean == i]
+    ith_cluster_silhouette_values.sort()
+    size_cluster_i = ith_cluster_silhouette_values.shape[0]
+    y_upper = y_lower + size_cluster_i
+    
+    color = cm.nipy_spectral(float(i) / n_cluster)
+    ax.fill_betweenx(np.arange(y_lower,y_upper),0,ith_cluster_silhouette_values,facecolor=color,edgecolor=color,alpha=0.75)
+    
+    #label the silhouse plots with their cluster numbers at the middle
+    ax.text(-0.05,y_lower + 0.5 * size_cluster_i,str(i))
+    
+    #compute the new y_lower for next plot
+    y_lower = y_upper +10 
+    
+ax.set_title("Silhuoette plot")
+ax.set_xlabel("silhouette score")
+ax.set_ylabel("Cluster label")
+    
+#the vertical line for average silhouette score of all the values
+ax.axvline(x=silhouette_avg, color="red",linestyle="--")
+    
+ax.set_yticks([])
+ax.set_xticks([-0.2,0,0.2,0.4,0.6,0.8,1])
+
+#%%
+df_check = pd.DataFrame({'predicted': y_mean, 'original': y[2]})
+ct = pd.crosstab(df_check['predicted'], df_check['original'])
+print(ct)
+
+y_kmeans_new = kmeans_pipeline.predict(X_new)
+
+
+silhouette_kmeans_new = silhouette_score(X_new, y_kmeans_new)
+print(f"Silhouette Score (KMeans) on new dataset: {silhouette_kmeans_new}")
+
+
+precision_kmeans_new = precision_score(y_new, y_kmeans_new, average='micro') 
+recall_kmeans_new = recall_score(y_new, y_kmeans_new, average='micro')  
+print(f"Precision (KMeans) on new dataset: {precision_kmeans_new}")
+print(f"Recall (KMeans) on new dataset: {recall_kmeans_new}")
+
+plt.scatter(X_new['x'], X_new['y'], c=y_kmeans_new, alpha=0.8)
+plt.title('KMeans on new dataset', fontsize=20)
+plt.show()
+
+
+y_dbscan_new = db_pipeline.fit_predict(X_new)
+
+
+silhouette_dbscan_new = silhouette_score(X_new, y_dbscan_new)
+print(f"Silhouette Score (dbscan) on new dataset: {silhouette_dbscan_new}")
+
+
+precision_dbscan_new = precision_score(y_new, y_dbscan_new, average='micro') 
+recall_dbscan_new = recall_score(y_new, y_dbscan_new, average='micro')  
+print(f"Precision (dbscan) on new dataset: {precision_dbscan_new}")
+print(f"Recall (dbscan) on new dataset: {recall_dbscan_new}")
+
+plt.scatter(X_new['x'], X_new['y'], c=y_dbscan_new, alpha=0.8)
+plt.title('dbscan on new dataset', fontsize=20)
+plt.show()
